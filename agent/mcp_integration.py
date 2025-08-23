@@ -1,8 +1,7 @@
 import asyncio
-import subprocess
 import json
 from typing import List, Dict, Any
-from langchain.tools import Tool
+from langchain.tools import StructuredTool
 import logging
 
 logger = logging.getLogger(__name__)
@@ -56,7 +55,7 @@ class MCPToolWrapper:
         except Exception as e:
             logger.exception(f"Failed to initialize tools for {self.server_name}: {e}")
 
-    def _create_langchain_tool(self, tool_info: Dict[str, Any]) -> Tool:
+    def _create_langchain_tool(self, tool_info: Dict[str, Any]) -> StructuredTool:
         """Create a LangChain tool from MCP tool info"""
 
         async def tool_function(**kwargs):
@@ -88,9 +87,10 @@ class MCPToolWrapper:
             except Exception as e:
                 return f"Tool execution failed: {str(e)}"
 
-        return Tool(
+        return StructuredTool(
             name=tool_info["name"],
             description=tool_info["description"],
+            args_schema=tool_info["inputSchema"],
             func=lambda **kwargs: asyncio.run(tool_function(**kwargs)),
         )
 
@@ -130,7 +130,7 @@ class MCPManager:
 
 
 # Convenience function to set up MCP tools for the agent
-async def setup_mcp_tools() -> List[Tool]:
+async def setup_mcp_tools() -> List[StructuredTool]:
     """Set up MCP tools for the recruiting agent"""
     manager = MCPManager()
 
