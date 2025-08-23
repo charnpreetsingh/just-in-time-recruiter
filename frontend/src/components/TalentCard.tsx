@@ -1,0 +1,109 @@
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MapPin, Calendar, ExternalLink } from "lucide-react";
+
+interface TalentCardProps {
+  name: string;
+  title: string;
+  company: string;
+  location: string;
+  layoffDate?: string;
+  avatar?: string;
+  skills?: string[];
+  matchScore?: number;
+  onPersonalize?: () => void;
+}
+
+export const TalentCard = ({ 
+  name, 
+  title, 
+  company, 
+  location, 
+  layoffDate, 
+  avatar, 
+  skills = [], 
+  matchScore,
+  onPersonalize 
+}: TalentCardProps) => {
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  return (
+    <Card className="p-6 hover:shadow-md transition-all duration-200">
+      <div className="flex items-start gap-4">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={avatar} alt={name} />
+          <AvatarFallback className="bg-primary text-primary-foreground">
+            {getInitials(name)}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 space-y-3">
+          <div>
+            <h3 className="font-semibold text-lg text-card-foreground">{name}</h3>
+            <p className="text-muted-foreground">{title}</p>
+            <p className="text-sm font-medium text-foreground">{company}</p>
+          </div>
+          
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {location}
+            </div>
+            {layoffDate && (
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Impacted {layoffDate}
+              </div>
+            )}
+          </div>
+          
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {skills.slice(0, 3).map((skill, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">
+                  {skill}
+                </Badge>
+              ))}
+              {skills.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{skills.length - 3} more
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between pt-2">
+            {matchScore && (
+              <Badge 
+                variant={matchScore >= 80 ? "default" : "secondary"}
+                className={matchScore >= 80 ? "bg-success text-success-foreground" : ""}
+              >
+                {matchScore}% match
+              </Badge>
+            )}
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Profile
+              </Button>
+              {onPersonalize && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={onPersonalize}
+                >
+                  Personalize
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
