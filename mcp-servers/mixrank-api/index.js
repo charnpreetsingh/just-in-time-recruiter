@@ -25,6 +25,12 @@ const server = new Server(
 
 // Mixrank API base configuration
 const API_KEY = process.env.MIXRANK_API_KEY;
+
+if (!API_KEY) {
+  console.error("MIXRANK_API_KEY environment variable is not set");
+  process.exit(1);
+}
+
 const MIXRANK_API_BASE = `https://api.mixrank.com/v2/json/${API_KEY}`;
 
 // Tool definitions
@@ -92,6 +98,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: "get_companies_paginated",
+        description: "Get companies with advanced pagination controls and metadata",
+        inputSchema: {
+          type: "object",
+          properties: {
+            page: {
+              type: "number",
+              description: "Page number (1-based, default: 1)"
+            },
+            per_page: {
+              type: "number",
+              description: "Results per page (max: 100, default: 25)"
+            },
+            search: {
+              type: "string",
+              description: "Search term for company name"
+            },
+            sort_field: {
+              type: "string",
+              description: "Sort by: rank, employee_count, or id"
+            },
+            sort_order: {
+              type: "string",
+              description: "Sort order: asc or desc",
+              enum: ["asc", "desc"]
+            }
+          }
+        }
+      },
+      {
         name: "get_employee_metrics",
         description: "Get employee headcount metrics and hiring signals for a company",
         inputSchema: {
@@ -126,9 +162,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             since: {
               type: "string",
               description: "Filter results since this date (YYYY-MM-DD format)"
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of time points to return (default: 50, max: 200)"
+            },
+            offset: {
+              type: "number",
+              description: "Number of time points to skip (default: 0)"
             }
           },
           required: ["company_id", "job_tag_id"]
+        }
+      },
+      {
+        name: "batch_get_employee_metrics",
+        description: "Get employee metrics for multiple companies efficiently",
+        inputSchema: {
+          type: "object",
+          properties: {
+            company_ids: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of company IDs to get metrics for"
+            },
+            job_tag_id: {
+              type: "string",
+              description: "Optional job tag ID to filter by department/role"
+            },
+            batch_size: {
+              type: "number",
+              description: "Process in batches of this size (default: 5, max: 10)"
+            }
+          },
+          required: ["company_ids"]
         }
       },
       {
@@ -152,8 +219,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 // Tool handlers
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+  
+  console.error(`[${requestId}] Mixrank API Call: ${name}`);
+  console.error(`[${requestId}] Arguments:`, JSON.stringify(args, null, 2));
 
   if (!API_KEY) {
+    console.error(`[${requestId}] Error: MIXRANK_API_KEY not configured`);
     throw new Error("MIXRANK_API_KEY not configured");
   }
 
@@ -161,10 +233,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     "Content-Type": "application/json"
   };
 
+  const startTime = Date.now();
   try {
     switch (name) {
       case "get_company_profile": {
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}`, { headers });
+        const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+        
+        const response = await axios.get(apiEndpoint, { headers });
+        
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Company: ${response.data.name || 'Unknown'}`);
 
         return {
           content: [
@@ -201,13 +281,77 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args.page_size) params.append('page_size', args.page_size.toString());
         if (args.sort_field) params.append('sort_field', args.sort_field);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies?${params}`, { headers });
+        const apiEndpoint = `${MIXRANK_API_BASE}/companies?${params}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+
+        const response = await axios.get(apiEndpoint, { headers });
+
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Companies found: ${response.data.results?.length || 0}`);
+
+        // Add pagination metadata
+        const pageSize = args.page_size || 10;
+        const offset = args.offset || 0;
+        const paginatedResponse = {
+          ...response.data,
+          pagination: {
+            offset: offset,
+            page_size: pageSize,
+            current_page: Math.floor(offset / pageSize) + 1,
+            has_more: response.data.results && response.data.results.length === pageSize,
+            next_offset: offset + pageSize,
+            prev_offset: Math.max(0, offset - pageSize)
+          }
+        };
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(paginatedResponse, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "get_companies_paginated": {
+        const page = args.page || 1;
+        const perPage = Math.min(args.per_page || 25, 100);
+        const offset = (page - 1) * perPage;
+
+        const params = new URLSearchParams();
+        params.append('offset', offset.toString());
+        params.append('page_size', perPage.toString());
+        if (args.search) params.append('search', args.search);
+        if (args.sort_field) params.append('sort_field', args.sort_field);
+
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies?${params}`, { headers });
+
+        // Enhanced pagination metadata
+        const totalResults = response.data.total_count || 0;
+        const totalPages = Math.ceil(totalResults / perPage);
+        
+        const paginatedResponse = {
+          ...response.data,
+          pagination: {
+            current_page: page,
+            per_page: perPage,
+            total_pages: totalPages,
+            total_results: totalResults,
+            has_previous: page > 1,
+            has_next: page < totalPages,
+            previous_page: page > 1 ? page - 1 : null,
+            next_page: page < totalPages ? page + 1 : null,
+            offset: offset
+          }
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(paginatedResponse, null, 2)
             }
           ]
         };
@@ -232,14 +376,95 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_employee_growth_timeseries": {
         const params = new URLSearchParams();
         if (args.since) params.append('since', args.since);
+        
+        const limit = Math.min(args.limit || 50, 200);
+        const offset = args.offset || 0;
+        
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.job_tag_id}/timeseries?${params}`, { headers });
+
+        // Add pagination metadata for timeseries data
+        const paginatedResponse = {
+          ...response.data,
+          pagination: {
+            limit: limit,
+            offset: offset,
+            has_more: response.data.timeseries && response.data.timeseries.length === limit,
+            next_offset: offset + limit,
+            prev_offset: Math.max(0, offset - limit)
+          }
+        };
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(paginatedResponse, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "batch_get_employee_metrics": {
+        const batchSize = Math.min(args.batch_size || 5, 10);
+        const companyIds = args.company_ids;
+        const results = [];
+        
+        console.error(`[${requestId}] Batch processing ${companyIds.length} companies in batches of ${batchSize}`);
+        
+        // Process companies in batches
+        for (let i = 0; i < companyIds.length; i += batchSize) {
+          const batch = companyIds.slice(i, i + batchSize);
+          
+          try {
+            const batchPromises = batch.map(companyId => {
+              const params = new URLSearchParams();
+              if (args.job_tag_id) params.append('tag_id', args.job_tag_id);
+              
+              return axios.get(`${MIXRANK_API_BASE}/companies/${companyId}/employee-metrics?${params}`, { headers })
+                .then(response => ({ 
+                  success: true, 
+                  company_id: companyId, 
+                  data: response.data 
+                }))
+                .catch(error => ({ 
+                  success: false, 
+                  company_id: companyId, 
+                  error: error.message 
+                }));
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            results.push(...batchResults);
+            
+            // Add delay between batches to respect rate limits
+            if (i + batchSize < companyIds.length) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          } catch (error) {
+            results.push({ 
+              success: false, 
+              error: error.message, 
+              batch: i / batchSize + 1 
+            });
+          }
+        }
+
+        const response = {
+          total_requested: companyIds.length,
+          total_processed: results.length,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          results: results
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(response, null, 2)
             }
           ]
         };
@@ -264,10 +489,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       default:
+        console.error(`[${requestId}] Error: Unknown tool: ${name}`);
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[${requestId}] Request failed after ${duration}ms: ${error.message}`);
+    
     if (error.response) {
+      console.error(`[${requestId}] API Error Details: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       throw new Error(`Mixrank API error: ${error.response.status} - ${error.response.data?.message || error.message}`);
     }
     throw new Error(`Request failed: ${error.message}`);
@@ -275,9 +505,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Mixrank MCP server running on stdio");
+  try {
+    console.error(`Mixrank MCP server starting with API key: ${API_KEY ? 'SET' : 'NOT SET'}`);
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("Mixrank MCP server running on stdio");
+  } catch (error) {
+    console.error("Failed to start Mixrank MCP server:", error);
+    process.exit(1);
+  }
 }
 
 main().catch(console.error);

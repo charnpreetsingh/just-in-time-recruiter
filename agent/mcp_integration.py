@@ -27,6 +27,17 @@ class MCPToolWrapper:
                 stderr=asyncio.subprocess.PIPE,
             )
             logger.info(f"Started MCP server: {self.server_name}")
+            
+            # Give the server a moment to start up
+            await asyncio.sleep(0.5)
+            
+            # Check if process is still running
+            if self.process.returncode is not None:
+                stderr_output = await self.process.stderr.read()
+                logger.error(f"MCP server {self.server_name} exited with code {self.process.returncode}")
+                logger.error(f"Stderr: {stderr_output.decode()}")
+                return
+                
             await self._initialize_tools()
         except Exception as e:
             logger.error(f"Failed to start MCP server {self.server_name}: {e}")
@@ -43,7 +54,14 @@ class MCPToolWrapper:
 
             # Read response
             response_line = await self.process.stdout.readline()
-            response = json.loads(response_line.decode().strip())
+            response_text = response_line.decode().strip()
+            
+            if not response_text:
+                logger.error(f"Empty response from MCP server {self.server_name}")
+                return
+                
+            logger.debug(f"Raw response from {self.server_name}: {response_text}")
+            response = json.loads(response_text)
 
             if "result" in response and "tools" in response["result"]:
                 for tool_info in response["result"]["tools"]:
