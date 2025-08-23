@@ -37,35 +37,56 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            domain: {
+            company_id: {
               type: "string",
-              description: "Company domain (e.g., example.com)"
+              description: "Company ID (get from search_companies first)"
             }
           },
-          required: ["domain"]
+          required: ["company_id"]
+        }
+      },
+      {
+        name: "match_company",
+        description: "Find company by name, URL, or LinkedIn profile",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Company name to match"
+            },
+            url: {
+              type: "string", 
+              description: "Company URL to match"
+            },
+            linkedin: {
+              type: "string",
+              description: "LinkedIn profile URL to match"
+            }
+          }
         }
       },
       {
         name: "search_companies",
-        description: "Search for companies by criteria",
+        description: "Search companies directory with pagination and filtering",
         inputSchema: {
           type: "object",
           properties: {
-            industry: {
+            search: {
               type: "string",
-              description: "Industry filter"
+              description: "Search term for company name"
             },
-            size: {
-              type: "string",
-              description: "Company size (startup, small, medium, large, enterprise)"
+            offset: {
+              type: "number",
+              description: "Pagination offset (default: 0)"
             },
-            location: {
-              type: "string",
-              description: "Location filter"
+            page_size: {
+              type: "number",
+              description: "Results per page (max: 100, default: 10)"
             },
-            funding_status: {
+            sort_field: {
               type: "string",
-              description: "Funding status filter"
+              description: "Sort by: rank, employee_count, or id"
             }
           }
         }
@@ -98,20 +119,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Company ID"
             },
-            tag_id: {
+            job_tag_id: {
               type: "string",
               description: "Job tag ID for specific department/role"
             },
-            start_date: {
+            since: {
               type: "string",
-              description: "Start date (YYYY-MM format)"
-            },
-            end_date: {
-              type: "string",
-              description: "End date (YYYY-MM format)"
+              description: "Filter results since this date (YYYY-MM-DD format)"
             }
           },
-          required: ["company_id", "tag_id"]
+          required: ["company_id", "job_tag_id"]
         }
       },
       {
@@ -119,21 +136,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Get available job tags for filtering employee data",
         inputSchema: {
           type: "object",
-          properties: {}
-        }
-      },
-      {
-        name: "get_technology_stack",
-        description: "Get company's technology stack information",
-        inputSchema: {
-          type: "object",
           properties: {
-            domain: {
-              type: "string",
-              description: "Company domain"
+            tag_ids: {
+              type: "array",
+              items: { type: "string" },
+              description: "Optional array of specific tag IDs to retrieve"
             }
-          },
-          required: ["domain"]
+          }
         }
       }
     ]
@@ -155,7 +164,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case "get_company_profile": {
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.domain}`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}`, { headers });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(response.data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "match_company": {
+        const params = new URLSearchParams();
+        if (args.name) params.append('name', args.name);
+        if (args.url) params.append('url', args.url);
+        if (args.linkedin) params.append('linkedin', args.linkedin);
+
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies/match?${params}`, { headers });
 
         return {
           content: [
@@ -169,10 +196,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "search_companies": {
         const params = new URLSearchParams();
-        if (args.industry) params.append('industry', args.industry);
-        if (args.size) params.append('size', args.size);
-        if (args.location) params.append('location', args.location);
-        if (args.funding_status) params.append('funding_status', args.funding_status);
+        if (args.search) params.append('search', args.search);
+        if (args.offset) params.append('offset', args.offset.toString());
+        if (args.page_size) params.append('page_size', args.page_size.toString());
+        if (args.sort_field) params.append('sort_field', args.sort_field);
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies?${params}`, { headers });
 
@@ -204,10 +231,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_employee_growth_timeseries": {
         const params = new URLSearchParams();
-        if (args.start_date) params.append('start_date', args.start_date);
-        if (args.end_date) params.append('end_date', args.end_date);
+        if (args.since) params.append('since', args.since);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.tag_id}/timeseries?${params}`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.job_tag_id}/timeseries?${params}`, { headers });
 
         return {
           content: [
@@ -220,20 +246,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "get_job_tags": {
-        const response = await axios.get(`${MIXRANK_API_BASE}/jobtags`, { headers });
+        const params = new URLSearchParams();
+        if (args.tag_ids && args.tag_ids.length > 0) {
+          args.tag_ids.forEach(id => params.append('tag_ids', id));
+        }
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(response.data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case "get_technology_stack": {
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.domain}/technologies`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/jobtags?${params}`, { headers });
 
         return {
           content: [
