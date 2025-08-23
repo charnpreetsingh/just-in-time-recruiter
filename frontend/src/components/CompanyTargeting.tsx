@@ -46,7 +46,7 @@ const mockCompanies: CompanyMetrics[] = [
   }
 ];
 
-export const CompanyTargeting = () => {
+export const CompanyWatch = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("all");
 
@@ -59,7 +59,7 @@ export const CompanyTargeting = () => {
   return (
     <Card className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Company Targeting</h2>
+        <h2 className="text-xl font-semibold">Company Watch</h2>
         <Badge variant="secondary" className="text-sm">
           {filteredCompanies.length} companies tracked
         </Badge>
