@@ -24,7 +24,7 @@ const server = new Server(
 );
 
 // SixtyFour API base configuration
-const SIXTYFOUR_API_BASE = "https://api.sixtyfour.io/v1";
+const SIXTYFOUR_API_BASE = "https://api.sixtyfour.ai";
 const API_KEY = process.env.SIXTYFOUR_API_KEY;
 
 // Tool definitions
