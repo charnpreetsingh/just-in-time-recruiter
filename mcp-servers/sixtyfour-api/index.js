@@ -32,62 +32,55 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "search_candidates",
-        description: "Search for candidates using SixtyFour API",
+        name: "enrich_person",
+        description: "Enrich person/lead data using SixtyFour API",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Person's full name"
+            },
+            title: {
+              type: "string",
+              description: "Job title"
+            },
+            company: {
+              type: "string",
+              description: "Company name"
+            },
+            location: {
+              type: "string",
+              description: "Location"
+            },
+            linkedin_url: {
+              type: "string",
+              description: "LinkedIn profile URL"
+            }
+          },
+          required: ["name"]
+        }
+      },
+      {
+        name: "research_person",
+        description: "Research and find detailed information about a person",
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "Search query for candidates"
+              description: "Research query about the person"
             },
-            skills: {
-              type: "array",
-              items: { type: "string" },
-              description: "Required skills"
-            },
-            location: {
+            name: {
               type: "string",
-              description: "Location filter"
+              description: "Person's name"
             },
-            experience_level: {
+            company: {
               type: "string",
-              description: "Experience level (junior, mid, senior)"
+              description: "Company they work at"
             }
           },
           required: ["query"]
-        }
-      },
-      {
-        name: "get_candidate_profile",
-        description: "Get detailed candidate profile",
-        inputSchema: {
-          type: "object",
-          properties: {
-            candidate_id: {
-              type: "string",
-              description: "Candidate ID"
-            }
-          },
-          required: ["candidate_id"]
-        }
-      },
-      {
-        name: "get_talent_insights",
-        description: "Get talent market insights",
-        inputSchema: {
-          type: "object",
-          properties: {
-            role: {
-              type: "string",
-              description: "Job role to analyze"
-            },
-            location: {
-              type: "string",
-              description: "Location for insights"
-            }
-          },
-          required: ["role"]
         }
       }
     ]
@@ -103,53 +96,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   const headers = {
-    "Authorization": `Bearer ${API_KEY}`,
+    "x-api-key": API_KEY,
     "Content-Type": "application/json"
   };
 
   try {
     switch (name) {
-      case "search_candidates": {
-        const response = await axios.post(`${SIXTYFOUR_API_BASE}/candidates/search`, {
+      case "enrich_person": {
+        const requestBody = {
+          name: args.name,
+          ...(args.title && { title: args.title }),
+          ...(args.company && { company: args.company }),
+          ...(args.location && { location: args.location }),
+          ...(args.linkedin_url && { linkedin_url: args.linkedin_url })
+        };
+
+        const response = await axios.post(`${SIXTYFOUR_API_BASE}/enrich-lead`, requestBody, { headers });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(response.data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "research_person": {
+        const requestBody = {
           query: args.query,
-          filters: {
-            skills: args.skills,
-            location: args.location,
-            experience_level: args.experience_level
-          }
-        }, { headers });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(response.data, null, 2)
-            }
-          ]
+          ...(args.name && { name: args.name }),
+          ...(args.company && { company: args.company })
         };
-      }
 
-      case "get_candidate_profile": {
-        const response = await axios.get(`${SIXTYFOUR_API_BASE}/candidates/${args.candidate_id}`, { headers });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(response.data, null, 2)
-            }
-          ]
-        };
-      }
-
-      case "get_talent_insights": {
-        const response = await axios.get(`${SIXTYFOUR_API_BASE}/insights/talent`, {
-          headers,
-          params: {
-            role: args.role,
-            location: args.location
-          }
-        });
+        const response = await axios.post(`${SIXTYFOUR_API_BASE}/research`, requestBody, { headers });
 
         return {
           content: [
