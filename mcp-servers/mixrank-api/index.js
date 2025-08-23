@@ -24,8 +24,8 @@ const server = new Server(
 );
 
 // Mixrank API base configuration
-const MIXRANK_API_BASE = "https://api.mixrank.com/v2";
 const API_KEY = process.env.MIXRANK_API_KEY;
+const MIXRANK_API_BASE = `https://api.mixrank.com/v2/json/${API_KEY}`;
 
 // Tool definitions
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -71,39 +71,55 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
-        name: "get_hiring_signals",
-        description: "Get hiring signals and job postings for a company",
+        name: "get_employee_metrics",
+        description: "Get employee headcount metrics and hiring signals for a company",
         inputSchema: {
           type: "object",
           properties: {
-            domain: {
+            company_id: {
               type: "string",
-              description: "Company domain"
+              description: "Company ID (get from search_companies first)"
             },
-            department: {
+            tag_id: {
               type: "string",
-              description: "Department/role filter (engineering, sales, marketing, etc.)"
+              description: "Job tag ID for filtering by department/role (optional)"
             }
           },
-          required: ["domain"]
+          required: ["company_id"]
         }
       },
       {
-        name: "get_company_growth_signals",
-        description: "Get growth indicators for a company",
+        name: "get_employee_growth_timeseries",
+        description: "Get employee growth trends over time for hiring signals",
         inputSchema: {
           type: "object",
           properties: {
-            domain: {
+            company_id: {
               type: "string",
-              description: "Company domain"
+              description: "Company ID"
             },
-            timeframe: {
+            tag_id: {
               type: "string",
-              description: "Timeframe for growth analysis (30d, 90d, 180d, 1y)"
+              description: "Job tag ID for specific department/role"
+            },
+            start_date: {
+              type: "string",
+              description: "Start date (YYYY-MM format)"
+            },
+            end_date: {
+              type: "string",
+              description: "End date (YYYY-MM format)"
             }
           },
-          required: ["domain"]
+          required: ["company_id", "tag_id"]
+        }
+      },
+      {
+        name: "get_job_tags",
+        description: "Get available job tags for filtering employee data",
+        inputSchema: {
+          type: "object",
+          properties: {}
         }
       },
       {
@@ -133,7 +149,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   const headers = {
-    "Authorization": `Bearer ${API_KEY}`,
     "Content-Type": "application/json"
   };
 
@@ -159,7 +174,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args.location) params.append('location', args.location);
         if (args.funding_status) params.append('funding_status', args.funding_status);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/search?${params}`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies?${params}`, { headers });
 
         return {
           content: [
@@ -171,11 +186,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "get_hiring_signals": {
-        const params = new URLSearchParams({ domain: args.domain });
-        if (args.department) params.append('department', args.department);
+      case "get_employee_metrics": {
+        const params = new URLSearchParams();
+        if (args.tag_id) params.append('tag_id', args.tag_id);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.domain}/hiring?${params}`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`, { headers });
 
         return {
           content: [
@@ -187,11 +202,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case "get_company_growth_signals": {
-        const params = new URLSearchParams({ domain: args.domain });
-        if (args.timeframe) params.append('timeframe', args.timeframe);
+      case "get_employee_growth_timeseries": {
+        const params = new URLSearchParams();
+        if (args.start_date) params.append('start_date', args.start_date);
+        if (args.end_date) params.append('end_date', args.end_date);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.domain}/growth?${params}`, { headers });
+        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.tag_id}/timeseries?${params}`, { headers });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(response.data, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "get_job_tags": {
+        const response = await axios.get(`${MIXRANK_API_BASE}/jobtags`, { headers });
 
         return {
           content: [
