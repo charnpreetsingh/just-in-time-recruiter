@@ -368,7 +368,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
     throw new Error(`Request failed: ${error.message}`);
   }
-}
 });
 
 async function main() {
