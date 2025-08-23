@@ -11,6 +11,15 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Configure axios with longer timeouts for SixtyFour API (can take several minutes)
+const axiosInstance = axios.create({
+  timeout: 600000, // 10 minutes timeout
+  headers: {
+    'Keep-Alive': 'timeout=600, max=1000',
+    'Connection': 'keep-alive'
+  }
+});
+
 const server = new Server(
   {
     name: "sixtyfour-api-server",
@@ -222,7 +231,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Request: POST ${apiEndpoint}`);
         console.error(`[${requestId}] Request Body:`, JSON.stringify(requestBody, null, 2));
 
-        const response = await axios.post(apiEndpoint, requestBody, { headers });
+        const response = await axiosInstance.post(apiEndpoint, requestBody, { headers });
         
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
@@ -261,7 +270,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Request: POST ${apiEndpoint}`);
         console.error(`[${requestId}] Request Body:`, JSON.stringify(requestBody, null, 2));
 
-        const response = await axios.post(apiEndpoint, requestBody, { headers });
+        const response = await axiosInstance.post(apiEndpoint, requestBody, { headers });
 
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
@@ -286,7 +295,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Request: POST ${apiEndpoint}`);
         console.error(`[${requestId}] Request Body:`, JSON.stringify(requestBody, null, 2));
 
-        const response = await axios.post(apiEndpoint, requestBody, { headers });
+        const response = await axiosInstance.post(apiEndpoint, requestBody, { headers });
 
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
@@ -311,7 +320,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Request: POST ${apiEndpoint}`);
         console.error(`[${requestId}] Request Body:`, JSON.stringify(requestBody, null, 2));
 
-        const response = await axios.post(apiEndpoint, requestBody, { headers });
+        const response = await axiosInstance.post(apiEndpoint, requestBody, { headers });
 
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
@@ -337,7 +346,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Request: POST ${apiEndpoint}`);
         console.error(`[${requestId}] Request Body:`, JSON.stringify(requestBody, null, 2));
 
-        const response = await axios.post(apiEndpoint, requestBody, { headers });
+        const response = await axiosInstance.post(apiEndpoint, requestBody, { headers });
 
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
