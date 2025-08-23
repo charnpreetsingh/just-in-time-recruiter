@@ -38,6 +38,8 @@ class JustInTimeRecruitingAgent:
         - Various tools for data processing and outreach
         
         Always prioritize quality matches and respectful, personalized communication.
+
+        Limit yourself to ONE call per API function unless absolutely necessary. 
         """
 
         self.tools = []  # Will be populated with MCP server tools
