@@ -17,11 +17,12 @@ load_dotenv()
 
 class JustInTimeRecruitingAgent:
     def __init__(self):
-        # Initialize Claude model
+        # Initialize Claude model with extended timeouts
         self.llm = ChatAnthropic(
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
             model="claude-3-7-sonnet-latest",
             temperature=0.1,
+            timeout=600,  # 10 minutes timeout for API calls
         )
 
         # Define system prompt for recruiting agent
@@ -69,7 +70,11 @@ class JustInTimeRecruitingAgent:
         if self.tools:
             self.agent = create_tool_calling_agent(self.llm, self.tools, prompt)
             self.executor = AgentExecutor(
-                agent=self.agent, tools=self.tools, verbose=True
+                agent=self.agent, 
+                tools=self.tools, 
+                verbose=True,
+                max_execution_time=600,  # 10 minutes max execution time
+                max_iterations=70,  # Allow more iterations for complex recruiting workflows
             )
         else:
             logger.warning("No tools available, agent will run without external tools")
