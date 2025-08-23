@@ -62,7 +62,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Company name to match"
             },
             url: {
-              type: "string", 
+              type: "string",
               description: "Company URL to match"
             },
             linkedin: {
@@ -220,7 +220,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-  
+
   console.error(`[${requestId}] Mixrank API Call: ${name}`);
   console.error(`[${requestId}] Arguments:`, JSON.stringify(args, null, 2));
 
@@ -239,9 +239,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_company_profile": {
         const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}`;
         console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
-        
+
         const response = await axios.get(apiEndpoint, { headers });
-        
+
         const duration = Date.now() - startTime;
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
         console.error(`[${requestId}] Company: ${response.data.name || 'Unknown'}`);
@@ -282,7 +282,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Extract only essential matching data
         const essentialMatches = {
-          matches: response.data.matches ? response.data.matches.slice(0, 5).map(match => ({
+          matches: response.data.results ? response.data.results.slice(0, 5).map(match => ({
             id: match.id,
             name: match.name,
             domain: match.domain,
@@ -367,7 +367,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Extract essential data with enhanced pagination
         const totalResults = response.data.total_count || 0;
         const totalPages = Math.ceil(totalResults / perPage);
-        
+
         const essentialPaginatedResults = {
           results: response.data.results ? response.data.results.map(company => ({
             id: company.id,
@@ -433,10 +433,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_employee_growth_timeseries": {
         const params = new URLSearchParams();
         if (args.since) params.append('since', args.since);
-        
+
         const limit = Math.min(args.limit || 50, 200);
         const offset = args.offset || 0;
-        
+
         params.append('limit', limit.toString());
         params.append('offset', offset.toString());
 
@@ -480,43 +480,43 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const batchSize = Math.min(args.batch_size || 5, 10);
         const companyIds = args.company_ids;
         const results = [];
-        
+
         console.error(`[${requestId}] Batch processing ${companyIds.length} companies in batches of ${batchSize}`);
-        
+
         // Process companies in batches
         for (let i = 0; i < companyIds.length; i += batchSize) {
           const batch = companyIds.slice(i, i + batchSize);
-          
+
           try {
             const batchPromises = batch.map(companyId => {
               const params = new URLSearchParams();
               if (args.job_tag_id) params.append('tag_id', args.job_tag_id);
-              
+
               return axios.get(`${MIXRANK_API_BASE}/companies/${companyId}/employee-metrics?${params}`, { headers })
-                .then(response => ({ 
-                  success: true, 
-                  company_id: companyId, 
-                  data: response.data 
+                .then(response => ({
+                  success: true,
+                  company_id: companyId,
+                  data: response.data
                 }))
-                .catch(error => ({ 
-                  success: false, 
-                  company_id: companyId, 
-                  error: error.message 
+                .catch(error => ({
+                  success: false,
+                  company_id: companyId,
+                  error: error.message
                 }));
             });
-            
+
             const batchResults = await Promise.all(batchPromises);
             results.push(...batchResults);
-            
+
             // Add delay between batches to respect rate limits
             if (i + batchSize < companyIds.length) {
               await new Promise(resolve => setTimeout(resolve, 200));
             }
           } catch (error) {
-            results.push({ 
-              success: false, 
-              error: error.message, 
-              batch: i / batchSize + 1 
+            results.push({
+              success: false,
+              error: error.message,
+              batch: i / batchSize + 1
             });
           }
         }
@@ -564,7 +564,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[${requestId}] Request failed after ${duration}ms: ${error.message}`);
-    
+
     if (error.response) {
       console.error(`[${requestId}] API Error Details: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       throw new Error(`Mixrank API error: ${error.response.status} - ${error.response.data?.message || error.message}`);
