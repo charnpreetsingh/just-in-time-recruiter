@@ -246,11 +246,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
         console.error(`[${requestId}] Company: ${response.data.name || 'Unknown'}`);
 
+        // Extract only essential company profile fields
+        const essentialData = {
+          id: response.data.id,
+          name: response.data.name,
+          domain: response.data.domain,
+          employee_count: response.data.employee_count,
+          founded_year: response.data.founded_year,
+          location: response.data.location,
+          industry: response.data.industry,
+          funding_total: response.data.funding_total,
+          last_funding_date: response.data.last_funding_date,
+          revenue_range: response.data.revenue_range,
+          growth_stage: response.data.growth_stage,
+          description: response.data.description ? response.data.description.substring(0, 200) + '...' : null
+        };
+
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(essentialData, null, 2)
             }
           ]
         };
@@ -264,11 +280,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/match?${params}`, { headers });
 
+        // Extract only essential matching data
+        const essentialMatches = {
+          matches: response.data.matches ? response.data.matches.slice(0, 5).map(match => ({
+            id: match.id,
+            name: match.name,
+            domain: match.domain,
+            employee_count: match.employee_count,
+            confidence_score: match.confidence_score
+          })) : [],
+          total_matches: response.data.total_matches
+        };
+
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(essentialMatches, null, 2)
             }
           ]
         };
@@ -290,26 +318,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
         console.error(`[${requestId}] Companies found: ${response.data.results?.length || 0}`);
 
-        // Add pagination metadata
-        const pageSize = args.page_size || 10;
-        const offset = args.offset || 0;
-        const paginatedResponse = {
-          ...response.data,
+        // Extract only essential company search results
+        const essentialResults = {
+          results: response.data.results ? response.data.results.map(company => ({
+            id: company.id,
+            name: company.name,
+            domain: company.domain,
+            employee_count: company.employee_count,
+            location: company.location,
+            industry: company.industry,
+            growth_stage: company.growth_stage,
+            last_funding_date: company.last_funding_date
+          })) : [],
           pagination: {
-            offset: offset,
-            page_size: pageSize,
-            current_page: Math.floor(offset / pageSize) + 1,
-            has_more: response.data.results && response.data.results.length === pageSize,
-            next_offset: offset + pageSize,
-            prev_offset: Math.max(0, offset - pageSize)
-          }
+            offset: args.offset || 0,
+            page_size: args.page_size || 10,
+            current_page: Math.floor((args.offset || 0) / (args.page_size || 10)) + 1,
+            has_more: response.data.results && response.data.results.length === (args.page_size || 10),
+            next_offset: (args.offset || 0) + (args.page_size || 10),
+            prev_offset: Math.max(0, (args.offset || 0) - (args.page_size || 10))
+          },
+          total_count: response.data.total_count
         };
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(paginatedResponse, null, 2)
+              text: JSON.stringify(essentialResults, null, 2)
             }
           ]
         };
@@ -328,12 +364,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies?${params}`, { headers });
 
-        // Enhanced pagination metadata
+        // Extract essential data with enhanced pagination
         const totalResults = response.data.total_count || 0;
         const totalPages = Math.ceil(totalResults / perPage);
         
-        const paginatedResponse = {
-          ...response.data,
+        const essentialPaginatedResults = {
+          results: response.data.results ? response.data.results.map(company => ({
+            id: company.id,
+            name: company.name,
+            domain: company.domain,
+            employee_count: company.employee_count,
+            location: company.location,
+            industry: company.industry,
+            growth_stage: company.growth_stage
+          })) : [],
           pagination: {
             current_page: page,
             per_page: perPage,
@@ -351,7 +395,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(paginatedResponse, null, 2)
+              text: JSON.stringify(essentialPaginatedResults, null, 2)
             }
           ]
         };
@@ -363,11 +407,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`, { headers });
 
+        // Extract only essential employee metrics (hiring signals)
+        const essentialMetrics = {
+          company_id: args.company_id,
+          current_employee_count: response.data.current_employee_count,
+          employee_growth_6m: response.data.employee_growth_6m,
+          employee_growth_12m: response.data.employee_growth_12m,
+          growth_rate_percentage: response.data.growth_rate_percentage,
+          hiring_velocity: response.data.hiring_velocity,
+          departments_hiring: response.data.departments_hiring ? response.data.departments_hiring.slice(0, 5) : [],
+          recent_hires_count: response.data.recent_hires_count,
+          last_updated: response.data.last_updated
+        };
+
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(essentialMetrics, null, 2)
             }
           ]
         };
@@ -385,9 +442,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.job_tag_id}/timeseries?${params}`, { headers });
 
-        // Add pagination metadata for timeseries data
-        const paginatedResponse = {
-          ...response.data,
+        // Extract essential timeseries data (recent trends only)
+        const essentialTimeseries = {
+          company_id: args.company_id,
+          job_tag_id: args.job_tag_id,
+          timeseries: response.data.timeseries ? response.data.timeseries.map(point => ({
+            date: point.date,
+            employee_count: point.employee_count,
+            net_change: point.net_change,
+            growth_rate: point.growth_rate
+          })).slice(-12) : [], // Only last 12 data points
+          trend_summary: {
+            total_growth: response.data.total_growth,
+            avg_monthly_growth: response.data.avg_monthly_growth,
+            trend_direction: response.data.trend_direction
+          },
           pagination: {
             limit: limit,
             offset: offset,
@@ -401,7 +470,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: JSON.stringify(paginatedResponse, null, 2)
+              text: JSON.stringify(essentialTimeseries, null, 2)
             }
           ]
         };
