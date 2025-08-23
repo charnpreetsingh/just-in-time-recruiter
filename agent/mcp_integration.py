@@ -135,10 +135,10 @@ async def setup_mcp_tools() -> List[Tool]:
     manager = MCPManager()
 
     # Add SixtyFour API server
-    manager.add_server("../mcp-servers/sixtyfour-api/index.js", "sixtyfour-api")
+    manager.add_server("mcp-servers/sixtyfour-api/index.js", "sixtyfour-api")
 
     # Add Mixrank API server
-    manager.add_server("../mcp-servers/mixrank-api/index.js", "mixrank-api")
+    manager.add_server("mcp-servers/mixrank-api/index.js", "mixrank-api")
 
     # Start servers and get tools
     tools = await manager.start_all_servers()
