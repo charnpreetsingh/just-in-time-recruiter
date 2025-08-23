@@ -1,5 +1,4 @@
 import os
-import schedule
 import time
 import asyncio
 from dotenv import load_dotenv
@@ -21,7 +20,7 @@ class JustInTimeRecruitingAgent:
         # Initialize Claude model
         self.llm = ChatAnthropic(
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
-            model="claude-3-sonnet-20240229",
+            model="claude-3-7-sonnet-latest",
             temperature=0.1,
         )
 
@@ -85,10 +84,11 @@ class JustInTimeRecruitingAgent:
         try:
             # Define the recruiting tasks
             tasks = [
-                "Check for new talent profiles that match current job requirements",
-                "Analyze company hiring signals and growth indicators",
-                "Identify optimal timing for candidate outreach",
-                "Generate personalized recruiting messages for top matches",
+                "Identify a candidate for a ML engineering position. \
+                Candidate should have strong python and tensorflow experience. \
+                Candidate should be highly likely looking for a new job based on how \
+                well their current company is doing. \
+                Supply your reasoning for your choice. "
             ]
 
             for task in tasks:
@@ -102,15 +102,7 @@ class JustInTimeRecruitingAgent:
     def start_scheduler(self):
         """Start the scheduled recruiting cycles"""
         logger.info("Starting recruiting agent scheduler...")
-
-        # Schedule recruiting cycles
-        schedule.every(30).minutes.do(self.run_recruiting_cycle)  # Run every 30 minutes
-        schedule.every().day.at("09:00").do(self.run_recruiting_cycle)  # Daily at 9 AM
-        schedule.every().day.at("17:00").do(self.run_recruiting_cycle)  # Daily at 5 PM
-
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
+        self.run_recruiting_cycle()
 
 
 async def main():
