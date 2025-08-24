@@ -25,6 +25,10 @@ npm run preview      # Preview production build
 ```bash
 python main.py       # Run the autonomous recruiting agent
 pip install -r requirements.txt  # Install dependencies
+
+# Docker commands
+docker build -t recruiting-agent ./agent  # Build Docker image
+docker run --env-file .env recruiting-agent  # Run with Docker
 ```
 
 ### MCP Servers
@@ -72,9 +76,14 @@ MIXRANK_API_KEY=your_mixrank_api_key
 
 ## Running the Full System
 
+### Option 1: Manual Setup
 1. Start both MCP servers in separate terminals
 2. Run the autonomous agent with `python agent/main.py`
 3. Start the frontend development server with `npm run dev` from `/frontend`
+
+### Option 2: Docker (Agent Only)
+1. Build and run the agent with Docker: `docker build -t recruiting-agent ./agent && docker run --env-file .env recruiting-agent`
+2. Start the frontend development server with `npm run dev` from `/frontend`
 
 The agent will begin its scheduled recruiting cycles, while the frontend provides the user interface for monitoring and configuration.
 

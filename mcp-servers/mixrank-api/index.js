@@ -476,7 +476,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_employee_metrics": {
         const params = new URLSearchParams();
-        if (args.tag_id) params.append('job_tags', args.tag_id); // Correct parameter name
+        if (args.tag_id) params.append('job_tag_id', args.tag_id); // Fixed parameter name based on API docs
 
         const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`;
         console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
@@ -517,10 +517,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const params = new URLSearchParams();
         if (args.since) params.append('since', args.since);
 
-        const limit = Math.min(args.limit || 50, 200);
+        const pageSize = Math.min(args.limit || 50, 200);
         const offset = args.offset || 0;
 
-        params.append('limit', limit.toString());
+        params.append('page_size', pageSize.toString()); // Use page_size for consistency
         params.append('offset', offset.toString());
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.job_tag_id}/timeseries?${params}`, { headers });
@@ -529,7 +529,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const essentialTimeseries = {
           company_id: args.company_id,
           job_tag_id: args.job_tag_id,
-          limit: limit,
+          page_size: pageSize,
           offset: offset,
           // Correct fields from Mixrank API documentation
           timeseries: response.data.map ? response.data.map(point => ({
@@ -538,11 +538,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             job_count_alltime: point.job_count_alltime
           })) : [],
           pagination: {
-            limit: limit,
+            page_size: pageSize,
             offset: offset,
-            has_more: response.data && response.data.length === limit,
-            next_offset: offset + limit,
-            prev_offset: Math.max(0, offset - limit)
+            has_more: response.data && response.data.length === pageSize,
+            next_offset: offset + pageSize,
+            prev_offset: Math.max(0, offset - pageSize)
           }
         };
 
@@ -619,7 +619,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           try {
             const batchPromises = batch.map(companyId => {
               const params = new URLSearchParams();
-              if (args.job_tag_id) params.append('job_tags', args.job_tag_id); // Correct parameter name
+              if (args.job_tag_id) params.append('job_tag_id', args.job_tag_id); // Fixed parameter name based on API docs
 
               return axios.get(`${MIXRANK_API_BASE}/companies/${companyId}/employee-metrics?${params}`, { headers })
                 .then(response => ({
