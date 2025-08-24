@@ -1,11 +1,11 @@
 import os
-import time
 import asyncio
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.prompts import ChatPromptTemplate
 from langchain.globals import set_debug, set_verbose
+from langchain.memory import ConversationSummaryMemory
 import logging
 from mcp_integration import setup_mcp_tools
 
@@ -28,8 +28,15 @@ class JustInTimeRecruitingAgent:
             model="claude-3-7-sonnet-latest",
             temperature=0.1,
             timeout=600,  # 10 minutes timeout for API calls
+            model_kwargs={
+                "extra_headers": {"anthropic-beta": "token-efficient-tools-2025-02-19"}
+            },
         )
-
+        self.memory = ConversationSummaryMemory(
+            llm=self.llm,
+            max_token_limit=500,  # adjust based on how much you want to keep before summarizing
+            return_messages=True,
+        )
         # Define system prompt for recruiting agent
         self.system_prompt = """
         You are a just-in-time recruiting agent. Your role is to:
@@ -75,11 +82,12 @@ class JustInTimeRecruitingAgent:
         if self.tools:
             self.agent = create_tool_calling_agent(self.llm, self.tools, prompt)
             self.executor = AgentExecutor(
-                agent=self.agent, 
-                tools=self.tools, 
+                agent=self.agent,
+                tools=self.tools,
                 verbose=True,
                 max_execution_time=600,  # 10 minutes max execution time
                 max_iterations=70,  # Allow more iterations for complex recruiting workflows
+                memory=self.memory,
             )
         else:
             logger.warning("No tools available, agent will run without external tools")

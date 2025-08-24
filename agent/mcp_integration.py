@@ -1,10 +1,16 @@
 import asyncio
 import json
+from dotenv import load_dotenv
 from typing import List, Dict, Any
 from langchain.tools import StructuredTool
 import logging
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+import os
 
 logger = logging.getLogger(__name__)
+load_dotenv()
+
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
 class MCPToolWrapper:
@@ -27,17 +33,19 @@ class MCPToolWrapper:
                 stderr=asyncio.subprocess.PIPE,
             )
             logger.info(f"Started MCP server: {self.server_name}")
-            
+
             # Give the server a moment to start up
             await asyncio.sleep(0.5)
-            
+
             # Check if process is still running
             if self.process.returncode is not None:
                 stderr_output = await self.process.stderr.read()
-                logger.error(f"MCP server {self.server_name} exited with code {self.process.returncode}")
+                logger.error(
+                    f"MCP server {self.server_name} exited with code {self.process.returncode}"
+                )
                 logger.error(f"Stderr: {stderr_output.decode()}")
                 return
-                
+
             await self._initialize_tools()
         except Exception as e:
             logger.error(f"Failed to start MCP server {self.server_name}: {e}")
@@ -55,11 +63,11 @@ class MCPToolWrapper:
             # Read response
             response_line = await self.process.stdout.readline()
             response_text = response_line.decode().strip()
-            
+
             if not response_text:
                 logger.error(f"Empty response from MCP server {self.server_name}")
                 return
-                
+
             logger.debug(f"Raw response from {self.server_name}: {response_text}")
             response = json.loads(response_text)
 
@@ -97,7 +105,23 @@ class MCPToolWrapper:
                 if "result" in response:
                     content = response["result"].get("content", [])
                     if content and len(content) > 0:
-                        return content[0].get("text", "No response")
+                        final_resp = content[0].get("text", "No response")
+
+                        final_summary_response = client.messages.create(
+                            model="claude-3-7-sonnet-latest",
+                            max_tokens=500,
+                            temperature=0.3,
+                            system="You are a helpful assistant that summarizes text to only the most relevant and essential details. \
+                                However rather than store a vague summary, you include a list of specific details such as company names or employee names.",
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": f"Summarize this text to less than 100 words:\n\n{final_resp}",
+                                }
+                            ],
+                        )
+
+                        return final_summary_response.content[0].text.strip()
                     return "No content in response"
                 else:
                     return f"Error: {response.get('error', 'Unknown error')}"
