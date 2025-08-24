@@ -37,41 +37,20 @@ const MIXRANK_API_BASE = `https://api.mixrank.com/v2/json/${API_KEY}`;
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
-      {
-        name: "get_company_profile",
-        description: "Get company profile and insights from Mixrank",
-        inputSchema: {
-          type: "object",
-          properties: {
-            company_id: {
-              type: "string",
-              description: "Company ID (get from search_companies first)"
-            }
-          },
-          required: ["company_id"]
-        }
-      },
-      {
-        name: "match_company",
-        description: "Find company by name, URL, or LinkedIn profile",
-        inputSchema: {
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "Company name to match"
-            },
-            url: {
-              type: "string",
-              description: "Company URL to match"
-            },
-            linkedin: {
-              type: "string",
-              description: "LinkedIn profile URL to match"
-            }
-          }
-        }
-      },
+      // {
+      //   name: "get_company_profile",
+      //   description: "Get company profile and insights from Mixrank",
+      //   inputSchema: {
+      //     type: "object",
+      //     properties: {
+      //       company_id: {
+      //         type: "string",
+      //         description: "Company ID (get from search_companies first)"
+      //       }
+      //     },
+      //     required: ["company_id"]
+      //   }
+      // },
       {
         name: "search_companies",
         description: "Search companies directory with pagination and filtering",
@@ -131,24 +110,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           }
         }
       },
-      {
-        name: "get_employee_metrics",
-        description: "Get employee headcount metrics and hiring signals for a company",
-        inputSchema: {
-          type: "object",
-          properties: {
-            company_id: {
-              type: "string",
-              description: "Company ID (get from search_companies first)"
-            },
-            tag_id: {
-              type: "string",
-              description: "Job tag ID for filtering by department/role (optional)"
-            }
-          },
-          required: ["company_id"]
-        }
-      },
+      // {
+      //   name: "get_employee_metrics",
+      //   description: "Get employee headcount metrics and hiring signals for a company",
+      //   inputSchema: {
+      //     type: "object",
+      //     properties: {
+      //       company_id: {
+      //         type: "string",
+      //         description: "Company ID (get from search_companies first)"
+      //       },
+      //       tag_id: {
+      //         type: "string",
+      //         description: "Job tag ID for filtering by department/role (optional)"
+      //       }
+      //     },
+      //     required: ["company_id"]
+      //   }
+      // },
       {
         name: "get_employee_growth_timeseries",
         description: "Get employee growth trends over time for hiring signals",
@@ -179,29 +158,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["company_id", "job_tag_id"]
         }
       },
-      {
-        name: "batch_get_employee_metrics",
-        description: "Get employee metrics for multiple companies efficiently",
-        inputSchema: {
-          type: "object",
-          properties: {
-            company_ids: {
-              type: "array",
-              items: { type: "string" },
-              description: "Array of company IDs to get metrics for"
-            },
-            job_tag_id: {
-              type: "string",
-              description: "Optional job tag ID to filter by department/role"
-            },
-            batch_size: {
-              type: "number",
-              description: "Process in batches of this size (default: 5, max: 10)"
-            }
-          },
-          required: ["company_ids"]
-        }
-      },
+      // {
+      //   name: "batch_get_employee_metrics",
+      //   description: "Get employee metrics for multiple companies efficiently",
+      //   inputSchema: {
+      //     type: "object",
+      //     properties: {
+      //       company_ids: {
+      //         type: "array",
+      //         items: { type: "string" },
+      //         description: "Array of company IDs to get metrics for"
+      //       },
+      //       job_tag_id: {
+      //         type: "string",
+      //         description: "Optional job tag ID to filter by department/role"
+      //       },
+      //       batch_size: {
+      //         type: "number",
+      //         description: "Process in batches of this size (default: 5, max: 10)"
+      //       }
+      //     },
+      //     required: ["company_ids"]
+      //   }
+      // },
       {
         name: "get_company_timeseries",
         description: "Get company employee and follower trends over time",
@@ -302,7 +281,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             follower_count: response.data.linkedin?.follower_count,
             logo_url: response.data.linkedin?.logo_url
           },
-          description: response.data.linkedin?.description ? 
+          description: response.data.linkedin?.description ?
             response.data.linkedin.description.substring(0, 200) + '...' : null
         };
 
@@ -559,10 +538,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_company_timeseries": {
         const params = new URLSearchParams();
         if (args.since) params.append('since', args.since);
-        
+
         const pageSize = Math.min(args.limit || 100, 1000); // Use page_size parameter with max 1000
         const offset = args.offset || 0;
-        
+
         params.append('page_size', pageSize.toString()); // Correct parameter name
         params.append('offset', offset.toString());
 
