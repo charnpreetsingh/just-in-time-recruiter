@@ -31,21 +31,7 @@ export const RoleCard = ({
   const [expanded, setExpanded] = useState(false);
   const [filterByLayoffs, setFilterByLayoffs] = useState<boolean | null>(null); // null = all, true = only layoffs, false = no layoffs
   const [sortBy, setSortBy] = useState<'match' | 'recent'>('match');
-  
-  // Count talent affected by layoffs
-  // const layoffAffectedCount = matchingTalent.filter(t => t.layoff_date).length;
-  
-  // Count talent with sentiment issues (based on match reasons)
-  // const sentimentIssuesCount = matchingTalent.filter(t =>
-  //   t.match_reasons &&
-  //   t.match_reasons.some(reason =>
-  //     reason.includes('[SENTIMENT]') &&
-  //     (reason.toLowerCase().includes('low') ||
-  //      reason.toLowerCase().includes('declining') ||
-  //      reason.toLowerCase().includes('down'))
-  //   )
-  // ).length;
-  
+
   // Calculate tenure statistics for all matching talent
   const tenureStatistics = matchingTalent.map(talent => {
     const analysis = getUserTenureAnalysis(talent.name);
@@ -98,24 +84,6 @@ export const RoleCard = ({
               <Users className="h-3 w-3" />
               {matchingTalent.length} matches
             </Badge>
-            {/*{approachingTenureCount > 0 && (*/}
-            {/*  <Badge variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-600">*/}
-            {/*    <Clock className="h-3 w-3" />*/}
-            {/*    {approachingTenureCount} approaching avg tenure*/}
-            {/*  </Badge>*/}
-            {/*)}*/}
-            {/*{layoffAffectedCount > 0 && (*/}
-            {/*  <Badge variant="destructive" className="flex items-center gap-1">*/}
-            {/*    <AlertCircle className="h-3 w-3" />*/}
-            {/*    {layoffAffectedCount} layoff-affected*/}
-            {/*  </Badge>*/}
-            {/*)}*/}
-            {/*{sentimentIssuesCount > 0 && (*/}
-            {/*  <Badge variant="outline" className="flex items-center gap-1 border-amber-500 text-amber-500">*/}
-            {/*    <TrendingDown className="h-3 w-3" />*/}
-            {/*    {sentimentIssuesCount} sentiment issues*/}
-            {/*  </Badge>*/}
-            {/*)}*/}
             <Button 
               variant="ghost" 
               size="sm"
