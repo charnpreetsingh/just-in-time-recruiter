@@ -76,6 +76,12 @@ const Index = () => {
     }
   }, [searchTerm]);
   
+  // Handler to clear search filters when a new question is asked to the chatbot
+  const handleNewChatbotQuestion = () => {
+    setSearchTerm("");
+    setFilterBySkill(null);
+  };
+  
   // Render loading or error states without early returns to avoid hook inconsistencies
   let content;
   if (talentLoading) {
@@ -304,7 +310,10 @@ const Index = () => {
         </Tabs>
       </div>
       {/* AI Chatbot Interface */}
-      <ChatInterface onFilterAction={handleChatFilterAction} />
+      <ChatInterface 
+        onFilterAction={handleChatFilterAction}
+        onNewQuestion={handleNewChatbotQuestion}
+      />
     </div>
   );
 };

@@ -19,6 +19,7 @@ interface FilterAction {
 
 interface ChatInterfaceProps {
   onFilterAction: (action: FilterAction) => void;
+  onNewQuestion?: () => void;
 }
 
 // Define welcome message outside component to avoid recreating it on each render
@@ -29,7 +30,7 @@ const DEFAULT_WELCOME_MESSAGE: Message = {
   timestamp: new Date()
 };
 
-export const ChatInterface = ({ onFilterAction }: ChatInterfaceProps) => {
+export const ChatInterface = ({ onFilterAction, onNewQuestion }: ChatInterfaceProps) => {
   const [isOpen, setIsOpen] = useState(false);
   // Use the constant welcome message to ensure consistent hook calls
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MESSAGE]);
@@ -55,6 +56,11 @@ export const ChatInterface = ({ onFilterAction }: ChatInterfaceProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
+    
+    // Call onNewQuestion to reset search filters if provided
+    if (onNewQuestion) {
+      onNewQuestion();
+    }
     
     // Add user message
     const userMessage: Message = {
@@ -88,8 +94,10 @@ export const ChatInterface = ({ onFilterAction }: ChatInterfaceProps) => {
       
       if (companyMatches) {
         const company = companyMatches[1].trim();
-        responseContent += `I'll filter for talent from ${company}. `;
+        responseContent += `I'll filter for talent from ${company}. Switching to the Company Watch tab. `;
         actions.push({ type: 'company', value: company });
+        // Auto-switch to Company Watch tab when searching for a company
+        actions.push({ type: 'tab', value: 'companies' });
       }
       
       // Skill filters
@@ -247,35 +255,7 @@ export const ChatInterface = ({ onFilterAction }: ChatInterfaceProps) => {
         </Button>
       )}
       
-      {/* Quick filter chips - show when chat is open */}
-      {isOpen && (
-        <div className="absolute bottom-[calc(100%+0.5rem)] right-0 flex flex-wrap gap-2 justify-end max-w-xs">
-          <Badge 
-            variant="outline" 
-            className="bg-card hover:bg-muted cursor-pointer border-primary/20"
-            onClick={() => processMessage("Show me people from Google")}
-          >
-            <Filter className="h-3 w-3 mr-1 text-primary" />
-            Google talent
-          </Badge>
-          <Badge 
-            variant="outline" 
-            className="bg-card hover:bg-muted cursor-pointer border-primary/20"
-            onClick={() => processMessage("Show me people approaching their average tenure")}
-          >
-            <Clock className="h-3 w-3 mr-1 text-blue-500" />
-            Approaching tenure
-          </Badge>
-          <Badge 
-            variant="outline" 
-            className="bg-card hover:bg-muted cursor-pointer border-primary/20"
-            onClick={() => processMessage("Show me people from companies with sentiment issues")}
-          >
-            <TrendingDown className="h-3 w-3 mr-1 text-amber-500" />
-            Sentiment issues
-          </Badge>
-        </div>
-      )}
+      {/* Quick filter chips removed */}
     </div>
   );
 };
