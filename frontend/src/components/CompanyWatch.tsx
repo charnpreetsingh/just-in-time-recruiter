@@ -252,62 +252,66 @@ export const CompanyWatch = ({
         </Badge>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search companies..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
-        <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
-          <SelectTrigger className="w-48">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Industry" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Industries</SelectItem>
-            <SelectItem value="technology">Technology</SelectItem>
-            <SelectItem value="fintech">Fintech</SelectItem>
-            <SelectItem value="e-commerce">E-commerce</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button 
-          variant={showSentimentIssues ? "default" : "outline"}
-          className={showSentimentIssues ? "border-amber-500 bg-amber-100 hover:bg-amber-200 text-amber-700" : "border-amber-500 text-amber-500 hover:bg-amber-50"}
-          onClick={() => setShowSentimentIssues(!showSentimentIssues)}
-        >
-          <BarChart className="h-4 w-4 mr-2" />
-          {showSentimentIssues ? "✓ Sentiment Issues" : "Filter Sentiment Issues"}
-        </Button>
-        <Button 
-          variant={showApproachingTenure ? "default" : "outline"}
-          className={showApproachingTenure ? "border-blue-500 bg-blue-100 hover:bg-blue-200 text-blue-700" : "border-blue-500 text-blue-500 hover:bg-blue-50"}
-          onClick={() => setShowApproachingTenure(!showApproachingTenure)}
-        >
-          <Clock className="h-4 w-4 mr-2" />
-          {showApproachingTenure ? "✓ Approaching Tenure" : "Show Approaching Tenure"}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 lg:gap-2">
+          <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+            <SelectTrigger className="w-full sm:w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Industry" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Industries</SelectItem>
+              <SelectItem value="technology">Technology</SelectItem>
+              <SelectItem value="fintech">Fintech</SelectItem>
+              <SelectItem value="e-commerce">E-commerce</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            variant={showSentimentIssues ? "default" : "outline"}
+            className={`whitespace-nowrap w-full sm:w-auto ${showSentimentIssues ? "border-amber-500 bg-amber-100 hover:bg-amber-200 text-amber-700" : "border-amber-500 text-amber-500 hover:bg-amber-50"}`}
+            onClick={() => setShowSentimentIssues(!showSentimentIssues)}
+          >
+            <BarChart className="h-4 w-4 mr-2" />
+            <span className="sm:hidden">{showSentimentIssues ? "✓ Sentiment" : "Sentiment"}</span>
+            <span className="hidden sm:inline">{showSentimentIssues ? "✓ Sentiment Issues" : "Filter Sentiment Issues"}</span>
+          </Button>
+          <Button 
+            variant={showApproachingTenure ? "default" : "outline"}
+            className={`whitespace-nowrap w-full sm:w-auto ${showApproachingTenure ? "border-blue-500 bg-blue-100 hover:bg-blue-200 text-blue-700" : "border-blue-500 text-blue-500 hover:bg-blue-50"}`}
+            onClick={() => setShowApproachingTenure(!showApproachingTenure)}
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            <span className="sm:hidden">{showApproachingTenure ? "✓ Tenure" : "Tenure"}</span>
+            <span className="hidden sm:inline">{showApproachingTenure ? "✓ Approaching Tenure" : "Show Approaching Tenure"}</span>
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
         {filteredCompanies.map((company, index) => (
           <div key={index} className="space-y-3">
             <Card className="p-4 hover:shadow-md transition-all duration-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-start gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-4 min-w-0">
                   <div className="p-2 bg-primary-muted rounded-lg">
                     <Building2 className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0 max-w-full">
                     <div>
                       <h3 className="font-semibold text-lg">{company.name}</h3>
                       <p className="text-sm text-muted-foreground">{company.industry}</p>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         {company.employeeCount.toLocaleString()} employees
@@ -324,7 +328,7 @@ export const CompanyWatch = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 max-w-full">
                       {company.hiringSignals.map((signal, idx) => (
                         <Badge key={idx} variant="secondary" className="text-xs">
                           {signal}
@@ -334,8 +338,8 @@ export const CompanyWatch = ({
                   </div>
                 </div>
                 
-                <div className="text-right space-y-2">
-                  <div className="flex flex-col gap-1 items-end">
+                <div className="text-left md:text-right space-y-2">
+                  <div className="flex flex-col gap-1 items-start md:items-end">
                     <Badge 
                       variant={company.growthTrend === 'down' ? "destructive" : "default"}
                       className={company.growthTrend === 'up' ? "bg-success text-success-foreground" : ""}

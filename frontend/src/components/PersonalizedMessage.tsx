@@ -51,12 +51,12 @@ export const PersonalizedMessage = ({
           placeholder="Personalized message will appear here..."
         />
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button 
             variant="outline" 
             size="sm"
             onClick={handleCopy}
-            className="flex-1"
+            className="flex-1 w-full sm:w-auto"
           >
             <Copy className="h-4 w-4 mr-2" />
             Copy Message
@@ -64,7 +64,7 @@ export const PersonalizedMessage = ({
           <Button 
             variant="default" 
             size="sm"
-            className="flex-1"
+            className="flex-1 w-full sm:w-auto"
           >
             <Send className="h-4 w-4 mr-2" />
             Send via LinkedIn

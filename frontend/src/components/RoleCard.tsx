@@ -31,7 +31,7 @@ export const RoleCard = ({
   const [expanded, setExpanded] = useState(false);
   const [filterByLayoffs, setFilterByLayoffs] = useState<boolean | null>(null); // null = all, true = only layoffs, false = no layoffs
   const [sortBy, setSortBy] = useState<'match' | 'recent'>('match');
-
+  
   // Calculate tenure statistics for all matching talent
   const tenureStatistics = matchingTalent.map(talent => {
     const analysis = getUserTenureAnalysis(talent.name);
@@ -67,7 +67,7 @@ export const RoleCard = ({
   return (
     <Card className="p-6 hover:shadow-md transition-all duration-200">
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Briefcase className="h-5 w-5 text-primary" />
@@ -79,7 +79,7 @@ export const RoleCard = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge className="flex items-center gap-1">
               <Users className="h-3 w-3" />
               {matchingTalent.length} matches
@@ -126,11 +126,11 @@ export const RoleCard = ({
             </div>
             
             {/* Filters and sort options */}
-            <div className="flex justify-between items-center bg-muted/20 p-3 rounded-md">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-muted/20 p-3 rounded-md gap-4">
               {/* Employment Status Filter */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs text-muted-foreground">Filter:</span>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Button 
                     size="sm" 
                     variant={filterByLayoffs === null ? "secondary" : "outline"}
@@ -159,7 +159,7 @@ export const RoleCard = ({
               </div>
               
               {/* Sort Options */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">Sort by:</span>
                 <Button 
                   size="sm" 

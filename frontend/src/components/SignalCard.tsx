@@ -245,12 +245,12 @@ export const SignalCard = ({ type, title, description, count, trend }: SignalCar
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Card className="p-6 hover:shadow-md transition-all duration-200 border-l-4 border-l-primary cursor-pointer">
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className={`p-2 rounded-lg ${getIconBg()}`}>
               {getIcon()}
             </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="flex-1 space-y-2 min-w-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <h3 className="font-semibold text-lg text-card-foreground">{title}</h3>
                 {count && (
                   <Badge variant="secondary" className="text-sm">

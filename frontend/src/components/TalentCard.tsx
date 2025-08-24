@@ -45,7 +45,7 @@ export const TalentCard = ({
 
   return (
     <Card className="p-6 hover:shadow-md transition-all duration-200">
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-start gap-4">
         <Avatar className="h-12 w-12">
           <AvatarImage src={avatar} alt={name} />
           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -53,11 +53,11 @@ export const TalentCard = ({
           </AvatarFallback>
         </Avatar>
         
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-3 min-w-0 w-full">
           <div>
             <h3 className="font-semibold text-lg text-card-foreground">{name}</h3>
             <p className="text-muted-foreground">{title}</p>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <p className="text-sm font-medium text-foreground">{company}</p>
               {matchReasons && matchReasons.some(reason => reason.includes('[SENTIMENT]')) && (
                 <div className="flex items-center gap-0.5 bg-amber-100 text-amber-700 px-1 py-0.5 rounded-sm text-xs">
@@ -68,7 +68,7 @@ export const TalentCard = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               {location}
@@ -109,7 +109,7 @@ export const TalentCard = ({
             </div>
           )}
           
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
             {matchScore && (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
@@ -280,8 +280,8 @@ export const TalentCard = ({
               </div>
             )}
             
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <ExternalLink className="h-4 w-4 mr-1" />
                 View Profile
               </Button>
@@ -289,6 +289,7 @@ export const TalentCard = ({
                 <Button 
                   variant="default" 
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={onPersonalize}
                 >
                   Personalize

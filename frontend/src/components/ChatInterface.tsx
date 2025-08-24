@@ -173,7 +173,7 @@ export const ChatInterface = ({ onFilterAction, onNewQuestion }: ChatInterfacePr
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {isOpen ? (
-        <Card className="w-80 md:w-96 shadow-lg border-primary/20 flex flex-col">
+        <Card className="w-72 sm:w-80 md:w-96 shadow-lg border-primary/20 flex flex-col max-h-[90vh]">
           <div className="flex items-center justify-between bg-card p-4 border-b">
             <div className="flex items-center gap-2">
               <Bot className="text-primary h-5 w-5" />
@@ -189,7 +189,7 @@ export const ChatInterface = ({ onFilterAction, onNewQuestion }: ChatInterfacePr
             </div>
           </div>
           
-          <div className="p-4 overflow-y-auto max-h-96 flex flex-col gap-3">
+          <div className="p-4 overflow-y-auto max-h-[60vh] sm:max-h-96 flex flex-col gap-3">
             {messages.map((msg) => (
               <div 
                 key={msg.id} 

@@ -157,8 +157,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/30">
       {/* Header */}
       <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg flex items-center justify-center">
                 <img src="/favicon-logo.png" alt="JumpShip Logo" className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20" />
@@ -168,7 +168,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Finding top talent at the perfect moment</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Badge variant="secondary" className="text-sm">
                 2,847 active signals
               </Badge>
@@ -181,14 +181,14 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8 space-y-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Signals Section */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
             Signals
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SignalCard
               type="timing"
               title="To the Moon"
@@ -217,18 +217,18 @@ const Index = () => {
           <TabsContent value="roles" className="space-y-6">
             {/* Search and Filters */}
             <Card className="p-4">
-              <div className="flex gap-4">
-                <div className="relative flex-1">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search roles by title, department, or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 w-full"
                   />
                 </div>
                 <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filter by department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -243,9 +243,10 @@ const Index = () => {
                 <Button 
                   variant={showOnlyWithLayoffMatches ? "default" : "outline"}
                   onClick={() => setShowOnlyWithLayoffMatches(!showOnlyWithLayoffMatches)}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap w-full sm:w-auto"
                 >
-                  {showOnlyWithLayoffMatches ? "✓ With Layoff Matches" : "Show Only With Layoff Matches"}
+                  <span className="sm:hidden">{showOnlyWithLayoffMatches ? "✓ Layoff Matches" : "Layoff Filter"}</span>
+                  <span className="hidden sm:inline">{showOnlyWithLayoffMatches ? "✓ With Layoff Matches" : "Show Only With Layoff Matches"}</span>
                 </Button>
               </div>
             </Card>
