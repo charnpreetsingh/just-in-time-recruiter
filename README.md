@@ -75,6 +75,8 @@ Custom Model Context Protocol servers for external API integration:
 
 ### Running the System
 
+#### Option 1: Manual Setup
+
 1. Start MCP servers (in separate terminals):
    ```bash
    # Terminal 1
@@ -95,6 +97,22 @@ Custom Model Context Protocol servers for external API integration:
    cd frontend
    npm run dev
    ```
+
+#### Option 2: Docker (Agent Only)
+
+1. Build and run the agent with Docker:
+   ```bash
+   docker build -t recruiting-agent ./agent
+   docker run --env-file .env recruiting-agent
+   ```
+
+2. Start the frontend:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+> **Note**: The Docker option runs the agent with embedded MCP servers, so no need to start them separately.
 
 ## Configuration
 
