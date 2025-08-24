@@ -93,6 +93,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             sort_field: {
               type: "string",
               description: "Sort by: rank, employee_count, or id"
+            },
+            company_id: {
+              type: "string",
+              description: "Optional company ID filter"
             }
           }
         }
@@ -318,11 +322,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args.url) params.append('url', args.url);
         if (args.linkedin) params.append('linkedin', args.linkedin);
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/match?${params}`, { headers });
+        const apiEndpoint = `${MIXRANK_API_BASE}/companies/match?${params}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+
+        const response = await axios.get(apiEndpoint, { headers });
+
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Company matches found: ${Array.isArray(response.data) ? response.data.length : 0}`);
 
         // Extract only essential matching data using correct field names
+        // API returns array directly, not wrapped in 'results' or 'matches' field
         const essentialMatches = {
-          matches: response.data.results ? response.data.results.slice(0, 5).map(match => ({
+          matches: Array.isArray(response.data) ? response.data.slice(0, 5).map(match => ({
             id: match.id,
             name: match.name,
             slug: match.slug,
@@ -333,7 +345,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             employee_count: match.linkedin?.employee_count, // LinkedIn specific
             confidence_score: match.confidence_score
           })) : [],
-          total_matches: response.data.total_matches
+          total_matches: Array.isArray(response.data) ? response.data.length : 0
         };
 
         return {
@@ -352,6 +364,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args.offset) params.append('offset', args.offset.toString());
         if (args.page_size) params.append('page_size', args.page_size.toString());
         if (args.sort_field) params.append('sort_field', args.sort_field);
+        if (args.company_id) params.append('company.id', args.company_id); // Correct parameter format
 
         const apiEndpoint = `${MIXRANK_API_BASE}/companies?${params}`;
         console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
@@ -463,9 +476,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_employee_metrics": {
         const params = new URLSearchParams();
-        if (args.tag_id) params.append('tag_id', args.tag_id);
+        if (args.tag_id) params.append('job_tags', args.tag_id); // Correct parameter name
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`, { headers });
+        const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+
+        const response = await axios.get(apiEndpoint, { headers });
+
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Employee metrics for company: ${args.company_id}`);
 
         // Extract only essential employee metrics using correct Mixrank API field names
         const essentialMetrics = {
@@ -540,10 +560,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const params = new URLSearchParams();
         if (args.since) params.append('since', args.since);
         
-        const limit = Math.min(args.limit || 50, 200);
+        const pageSize = Math.min(args.limit || 100, 1000); // Use page_size parameter with max 1000
         const offset = args.offset || 0;
         
-        params.append('limit', limit.toString());
+        params.append('page_size', pageSize.toString()); // Correct parameter name
         params.append('offset', offset.toString());
 
         const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}/timeseries?${params}`;
@@ -558,7 +578,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Extract company timeseries data using correct Mixrank API field names
         const essentialTimeseries = {
           company_id: args.company_id,
-          limit: limit,
+          page_size: pageSize,
           offset: offset,
           // Correct fields from Mixrank API documentation: date, employee_count, linkedin_follower_count
           timeseries: response.data.map ? response.data.map(point => ({
@@ -567,11 +587,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             linkedin_follower_count: point.linkedin_follower_count
           })) : [],
           pagination: {
-            limit: limit,
+            page_size: pageSize,
             offset: offset,
-            has_more: response.data && response.data.length === limit,
-            next_offset: offset + limit,
-            prev_offset: Math.max(0, offset - limit)
+            has_more: response.data && response.data.length === pageSize,
+            next_offset: offset + pageSize,
+            prev_offset: Math.max(0, offset - pageSize)
           }
         };
 
@@ -599,7 +619,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           try {
             const batchPromises = batch.map(companyId => {
               const params = new URLSearchParams();
-              if (args.job_tag_id) params.append('tag_id', args.job_tag_id);
+              if (args.job_tag_id) params.append('job_tags', args.job_tag_id); // Correct parameter name
 
               return axios.get(`${MIXRANK_API_BASE}/companies/${companyId}/employee-metrics?${params}`, { headers })
                 .then(response => ({
