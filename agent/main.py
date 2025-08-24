@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.prompts import ChatPromptTemplate
+from langchain.globals import set_debug, set_verbose
 import logging
 from mcp_integration import setup_mcp_tools
 
@@ -13,6 +14,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
+# Enable LangChain debug mode for full observability
+set_debug(True)  # Shows ALL events in the chain
+set_verbose(True)  # Shows inputs/outputs in readable format
 
 
 class JustInTimeRecruitingAgent:

@@ -199,6 +199,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: "get_company_timeseries",
+        description: "Get company employee and follower trends over time",
+        inputSchema: {
+          type: "object",
+          properties: {
+            company_id: {
+              type: "string",
+              description: "Company ID to get timeseries for"
+            },
+            since: {
+              type: "string",
+              description: "Optional start date (YYYY-MM-DD format)"
+            },
+            limit: {
+              type: "number",
+              description: "Optional limit for number of data points (default: 50, max: 200)"
+            },
+            offset: {
+              type: "number",
+              description: "Optional offset for pagination"
+            }
+          },
+          required: ["company_id"]
+        }
+      },
+      {
         name: "get_job_tags",
         description: "Get available job tags for filtering employee data",
         inputSchema: {
@@ -246,20 +272,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
         console.error(`[${requestId}] Company: ${response.data.name || 'Unknown'}`);
 
-        // Extract only essential company profile fields
+        // Extract only essential company profile fields using correct Mixrank API field names
         const essentialData = {
           id: response.data.id,
           name: response.data.name,
-          domain: response.data.domain,
-          employee_count: response.data.employee_count,
-          founded_year: response.data.founded_year,
-          location: response.data.location,
-          industry: response.data.industry,
-          funding_total: response.data.funding_total,
-          last_funding_date: response.data.last_funding_date,
-          revenue_range: response.data.revenue_range,
-          growth_stage: response.data.growth_stage,
-          description: response.data.description ? response.data.description.substring(0, 200) + '...' : null
+          slug: response.data.slug,
+          rank: response.data.rank,
+          score: response.data.score,
+          employees: response.data.employees, // Correct field name from API docs
+          industries: response.data.industries, // From API docs
+          employee_count: response.data.linkedin?.employee_count, // LinkedIn specific
+          founded_year: response.data.linkedin?.founded,
+          location: {
+            street_address: response.data.address?.street_address,
+            city: response.data.address?.city,
+            region: response.data.address?.region,
+            country: response.data.address?.country,
+            postal_code: response.data.address?.postal_code
+          },
+          linkedin: {
+            website: response.data.linkedin?.website,
+            url: response.data.linkedin?.url,
+            type: response.data.linkedin?.type, // Industry equivalent
+            size: response.data.linkedin?.size,
+            follower_count: response.data.linkedin?.follower_count,
+            logo_url: response.data.linkedin?.logo_url
+          },
+          description: response.data.linkedin?.description ? 
+            response.data.linkedin.description.substring(0, 200) + '...' : null
         };
 
         return {
@@ -280,13 +320,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/match?${params}`, { headers });
 
-        // Extract only essential matching data
+        // Extract only essential matching data using correct field names
         const essentialMatches = {
           matches: response.data.results ? response.data.results.slice(0, 5).map(match => ({
             id: match.id,
             name: match.name,
-            domain: match.domain,
-            employee_count: match.employee_count,
+            slug: match.slug,
+            rank: match.rank,
+            score: match.score,
+            employees: match.employees, // Correct field name
+            industries: match.industries, // From API docs
+            employee_count: match.linkedin?.employee_count, // LinkedIn specific
             confidence_score: match.confidence_score
           })) : [],
           total_matches: response.data.total_matches
@@ -318,17 +362,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
         console.error(`[${requestId}] Companies found: ${response.data.results?.length || 0}`);
 
-        // Extract only essential company search results
+        // Extract only essential company search results using correct field names
         const essentialResults = {
           results: response.data.results ? response.data.results.map(company => ({
             id: company.id,
             name: company.name,
-            domain: company.domain,
-            employee_count: company.employee_count,
-            location: company.location,
-            industry: company.industry,
-            growth_stage: company.growth_stage,
-            last_funding_date: company.last_funding_date
+            slug: company.slug,
+            rank: company.rank,
+            score: company.score,
+            employees: company.employees, // Correct field name
+            industries: company.industries, // From API docs
+            employee_count: company.linkedin?.employee_count, // LinkedIn specific
+            location: {
+              city: company.address?.city,
+              region: company.address?.region,
+              country: company.address?.country
+            },
+            industry: company.linkedin?.type, // Industry equivalent from LinkedIn
+            linkedin_url: company.linkedin?.url,
+            founded_year: company.linkedin?.founded
           })) : [],
           pagination: {
             offset: args.offset || 0,
@@ -372,11 +424,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           results: response.data.results ? response.data.results.map(company => ({
             id: company.id,
             name: company.name,
-            domain: company.domain,
-            employee_count: company.employee_count,
-            location: company.location,
-            industry: company.industry,
-            growth_stage: company.growth_stage
+            slug: company.slug,
+            rank: company.rank,
+            score: company.score,
+            employees: company.employees, // Correct field name
+            industries: company.industries, // From API docs
+            employee_count: company.linkedin?.employee_count, // LinkedIn specific
+            location: {
+              city: company.address?.city,
+              region: company.address?.region,
+              country: company.address?.country
+            },
+            industry: company.linkedin?.type, // Industry from LinkedIn
+            linkedin_url: company.linkedin?.url
           })) : [],
           pagination: {
             current_page: page,
@@ -407,17 +467,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics?${params}`, { headers });
 
-        // Extract only essential employee metrics (hiring signals)
+        // Extract only essential employee metrics using correct Mixrank API field names
         const essentialMetrics = {
           company_id: args.company_id,
-          current_employee_count: response.data.current_employee_count,
-          employee_growth_6m: response.data.employee_growth_6m,
-          employee_growth_12m: response.data.employee_growth_12m,
-          growth_rate_percentage: response.data.growth_rate_percentage,
-          hiring_velocity: response.data.hiring_velocity,
-          departments_hiring: response.data.departments_hiring ? response.data.departments_hiring.slice(0, 5) : [],
-          recent_hires_count: response.data.recent_hires_count,
-          last_updated: response.data.last_updated
+          tag_id: args.tag_id,
+          job_tag_label: response.data.job_tag_label,
+          job_tag_id: response.data.job_tag_id,
+          job_count_current: response.data.job_count_current,
+          job_count_alltime: response.data.job_count_alltime,
+          job_count_expired: response.data.job_count_expired,
+          job_first_seen: response.data.job_first_seen,
+          job_last_seen: response.data.job_last_seen,
+          // Note: Fields like employee_growth_6m, hiring_velocity etc. don't exist in Mixrank API
+          // This endpoint provides job posting metrics, not employee count metrics
+          last_updated: response.data.last_updated || new Date().toISOString()
         };
 
         return {
@@ -442,25 +505,71 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const response = await axios.get(`${MIXRANK_API_BASE}/companies/${args.company_id}/employee-metrics/${args.job_tag_id}/timeseries?${params}`, { headers });
 
-        // Extract essential timeseries data (recent trends only)
+        // Extract essential timeseries data using correct Mixrank API field names
         const essentialTimeseries = {
           company_id: args.company_id,
           job_tag_id: args.job_tag_id,
-          timeseries: response.data.timeseries ? response.data.timeseries.map(point => ({
-            date: point.date,
-            employee_count: point.employee_count,
-            net_change: point.net_change,
-            growth_rate: point.growth_rate
-          })).slice(-12) : [], // Only last 12 data points
-          trend_summary: {
-            total_growth: response.data.total_growth,
-            avg_monthly_growth: response.data.avg_monthly_growth,
-            trend_direction: response.data.trend_direction
-          },
+          limit: limit,
+          offset: offset,
+          // Correct fields from Mixrank API documentation
+          timeseries: response.data.map ? response.data.map(point => ({
+            month: point.month,
+            job_count_current: point.job_count_current,
+            job_count_alltime: point.job_count_alltime
+          })) : [],
           pagination: {
             limit: limit,
             offset: offset,
-            has_more: response.data.timeseries && response.data.timeseries.length === limit,
+            has_more: response.data && response.data.length === limit,
+            next_offset: offset + limit,
+            prev_offset: Math.max(0, offset - limit)
+          }
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(essentialTimeseries, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "get_company_timeseries": {
+        const params = new URLSearchParams();
+        if (args.since) params.append('since', args.since);
+        
+        const limit = Math.min(args.limit || 50, 200);
+        const offset = args.offset || 0;
+        
+        params.append('limit', limit.toString());
+        params.append('offset', offset.toString());
+
+        const apiEndpoint = `${MIXRANK_API_BASE}/companies/${args.company_id}/timeseries?${params}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+
+        const response = await axios.get(apiEndpoint, { headers });
+
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Timeseries data for company: ${args.company_id}`);
+
+        // Extract company timeseries data using correct Mixrank API field names
+        const essentialTimeseries = {
+          company_id: args.company_id,
+          limit: limit,
+          offset: offset,
+          // Correct fields from Mixrank API documentation: date, employee_count, linkedin_follower_count
+          timeseries: response.data.map ? response.data.map(point => ({
+            date: point.date,
+            employee_count: point.employee_count,
+            linkedin_follower_count: point.linkedin_follower_count
+          })) : [],
+          pagination: {
+            limit: limit,
+            offset: offset,
+            has_more: response.data && response.data.length === limit,
             next_offset: offset + limit,
             prev_offset: Math.max(0, offset - limit)
           }
@@ -545,13 +654,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           args.tag_ids.forEach(id => params.append('tag_ids', id));
         }
 
-        const response = await axios.get(`${MIXRANK_API_BASE}/jobtags?${params}`, { headers });
+        const apiEndpoint = `${MIXRANK_API_BASE}/jobtags?${params}`;
+        console.error(`[${requestId}] API Request: GET ${apiEndpoint}`);
+
+        const response = await axios.get(apiEndpoint, { headers });
+
+        const duration = Date.now() - startTime;
+        console.error(`[${requestId}] API Response: ${response.status} (${duration}ms)`);
+        console.error(`[${requestId}] Job tags retrieved: ${response.data.length || 0}`);
+
+        // Extract essential job tag data using correct Mixrank API field names
+        const essentialJobTags = {
+          tags: response.data.map ? response.data.map(tag => ({
+            id: tag.id,
+            label: tag.label,
+            parent_id: tag.parent_id
+          })) : response.data
+        };
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(response.data, null, 2)
+              text: JSON.stringify(essentialJobTags, null, 2)
             }
           ]
         };
