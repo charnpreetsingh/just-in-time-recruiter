@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from typing import List, Dict, Any
 from langchain.tools import StructuredTool
 import logging
-from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+from anthropic import Anthropic
 import os
+import subprocess
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -25,12 +26,11 @@ class MCPToolWrapper:
     async def start_server(self):
         """Start the MCP server process"""
         try:
-            self.process = await asyncio.create_subprocess_exec(
-                "node",
-                self.server_path,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+            self.process = subprocess.Popen(
+                ["node", self.server_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
             logger.info(f"Started MCP server: {self.server_name}")
 
@@ -39,7 +39,7 @@ class MCPToolWrapper:
 
             # Check if process is still running
             if self.process.returncode is not None:
-                stderr_output = await self.process.stderr.read()
+                stderr_output = self.process.stderr.read()
                 logger.error(
                     f"MCP server {self.server_name} exited with code {self.process.returncode}"
                 )
@@ -58,10 +58,10 @@ class MCPToolWrapper:
 
             request_json = json.dumps(request) + "\n"
             self.process.stdin.write(request_json.encode())
-            await self.process.stdin.drain()
+            self.process.stdin.flush()
 
             # Read response
-            response_line = await self.process.stdout.readline()
+            response_line = self.process.stdout.readline()
             response_text = response_line.decode().strip()
 
             if not response_text:
@@ -84,7 +84,7 @@ class MCPToolWrapper:
     def _create_langchain_tool(self, tool_info: Dict[str, Any]) -> StructuredTool:
         """Create a LangChain tool from MCP tool info"""
 
-        async def tool_function(**kwargs):
+        def tool_function(**kwargs):
             try:
                 # Send call_tool request
                 request = {
@@ -96,10 +96,10 @@ class MCPToolWrapper:
 
                 request_json = json.dumps(request) + "\n"
                 self.process.stdin.write(request_json.encode())
-                await self.process.stdin.drain()
+                self.process.stdin.flush()
 
                 # Read response
-                response_line = await self.process.stdout.readline()
+                response_line = self.process.stdout.readline()
                 response = json.loads(response_line.decode().strip())
 
                 if "result" in response:
@@ -133,14 +133,14 @@ class MCPToolWrapper:
             name=tool_info["name"],
             description=tool_info["description"],
             args_schema=tool_info["inputSchema"],
-            func=lambda **kwargs: asyncio.run(tool_function(**kwargs)),
+            func=tool_function,
         )
 
     async def stop_server(self):
         """Stop the MCP server process"""
         if self.process:
             self.process.terminate()
-            await self.process.wait()
+            self.process.wait()
             logger.info(f"Stopped MCP server: {self.server_name}")
 
 
